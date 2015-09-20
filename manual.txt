@@ -1,0 +1,21 @@
+Elecsimjs simulates easily an electronic circuit using Javascript language. It was conceived to design and 
+simulate a new 8 bit computer, but, obviously, you can use it for your own purposes. 
+
+It has three parts:
+- The engine: This is the main system where the differents parts of the circuits are processed and draw.
+
+- The library: Here every electronic component is described using Javascript clases.
+
+- The circuit definition: Where the final user describe the circuit using simple methods.
+
+The initial concepts:
+- The system represent all the electronics elements as chips. It doesn't matter if want to represent a resistance, 
+  a transistor or a diode. All of them will be represented as chips.
+
+- The chips always have an even number of pins. If the element you want to represent have an odd number of pins, 
+  a transistor for example, just use the pins you need and leave the unused pin without connect.
+
+-
+
+Let start with the circuit definition:
+
