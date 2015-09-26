@@ -2,6 +2,7 @@ Elecsimjs simulates easily an electronic circuit using Javascript language. It w
 simulate a new 8 bit computer, but, obviously, you can use it for your own purposes. 
 
 It has three parts:
+
 - The engine: This is the main system where the differents parts of the circuits are processed and draw.
 
 - The library: Here every electronic component is described using Javascript clases.
@@ -9,13 +10,72 @@ It has three parts:
 - The circuit definition: Where the final user describe the circuit using simple methods.
 
 The initial concepts:
-- The system represent all the electronics elements as chips. It doesn't matter if want to represent a resistance, 
+
+- The system represent all the electronics elements as chips. It doesn't matter if you want to represent a resistance, 
   a transistor or a diode. All of them will be represented as chips.
 
 - The chips always have an even number of pins. If the element you want to represent have an odd number of pins, 
   a transistor for example, just use the pins you need and leave the unused pin without connect.
 
--
+- The lines have the voltage. Not the pins nor the chips.
 
 Let start with the circuit definition:
+
+The principal function is 'main()'. You can call others functions from this one, but it will not be necessary in a simple circuit.
+Here are an example with comments:
+
+function main()
+{
+  //This is the 
+  var canvas = document.getElementById('myCanvas');
+  contexto = canvas.getContext('2d');
+ 
+  var line=[]; //Array for the diferents lines.
+
+  //chips:
+  var power=new e_power(200,50); // It create the Power chip. It is an invented but necessary chip.
+  var timer=new e_timer05(250,100); // It create a timer chip. It is an invented chip.
+  var led=new e_red_led(200,150); 
+  var ls7400=new e_7400(350,200);
+  var led2=new e_red_led(200,200);
+  
+  //To add lines to connect the pins of the chips:
+  
+  //Vcc:
+  line[0]=new line();
+  line[0].add_pin(power.pin[1]);
+  line[0].add_pin(timer.pin[4]);
+  line[0].add_pin(ls7400.pin[14]);
+  
+  //Ground:
+  line[1]=new line();
+  line[1].add_pin(power.pin[2]);
+  line[1].add_pin(led.pin[2]);
+  line[1].add_pin(timer.pin[2]);
+  line[1].add_pin(ls7400.pin[7]);
+  line[1].add_pin(led2.pin[2]);
+
+  line[2]=new line();
+  line[2].add_pin(timer.pin[1]);
+  line[2].add_pin(led.pin[1]);
+  line[2].add_pin(ls7400.pin[1]);
+  line[2].add_pin(ls7400.pin[2]);
+  
+  line[3]=new line();
+  line[3].add_pin(led2.pin[1]);
+  line[3].add_pin(ls7400.pin[3]);
+  
+  //Draw lines:  
+  for(var x=0; x<linea.length; x++) line[x].draw();
+	
+  //Switch on the power:	
+  power.call_engine(); 
+}
+
+
+
+
+- 
+
+
 

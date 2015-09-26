@@ -1,10 +1,11 @@
-ancho_pin=4;
-alto_pin=4;
-espacio_entre_pins=4;
-ancho_chip=30;
+pin_width=4;
+pin_high=4;
+space_between_pins=4;
+chip_width=30;
 
 var GROUND=-10000;
 var contexto;
+
 
 function draw_box(x,y,x1,y1)
 {
@@ -18,26 +19,80 @@ contexto.stroke();
 }
 
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//******************************** TTimer ***********************************
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+//Used to get a particular timer.
+//Time is expressed in 'tics' and it increment one unit every 'ms' milliseconds.
+function TTimer(ms)
+{
+ this.tic=-1;
+ this.ms=ms;
+ this.ttimer_id=null;
+ 
+ //Action of the timer. Called automatically. Not for the user.
+ this.play_timer=function()
+  { 
+   this.tic++;	
+   this.ttimer_id=window.setTimeout(this.play_timer.bind(this), this.ms); 	
+  } 
+ 
+ this.play_timer();
+}
+
+//Return the actual tic's number.
+TTimer.prototype.get_tics=function()
+{
+ return this.tic;
+}
+
+//Set the timer's tic's number to 't'.   
+TTimer.prototype.set_tics=function(t)
+{
+ this.tic=t;	
+}
+
+//Set the timer's tic's number to zero.
+TTimer.prototype.reset_tics=function()
+{
+ this.tic=0;	
+}
+
+//Stop the timer. It not delete the intrinsic variables associated to the object.
+TTimer.prototype.stop=function()
+{
+ window.clearTimeout(this.ttimer_id);
+}
+
+
+TTimer.prototype.continue=function()
+{
+ this.ttimer_id=window.setTimeout(this.play_timer.bind(this), this.ms);
+}
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//******************************** TTimer ***********************************
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 //*********************************** PIN ***********************************
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 function pin(chip,x,y,num)
 {
- this.type="e"; //Tipo: "e","s","es"
+ this.type="i"; //Tipo: "i","o","io"
 	
- this.num=num; //Numero del pin dentro del chip
- this.chip=chip; //Puntero al chip que lo contiene
- this.line=null; //Puntero a la linea a la que esta conectado. 
+ this.num=num; //Pin number in the chip.
+ this.chip=chip; //Pointer to the chip it belongs.
+ this.line=null; //pointer to the line that connects it 
  
- this.px=x; //Posicion x absoluta en el canvas para dibujarlo 
- this.py=y; //Posicion y absoluta en el canvas para dibujarlo
+ this.px=x; //X position in the canvas to draw it 
+ this.py=y; //Y position in the canvas to draw it
 } 
 
-
+//Pin draw function.
 pin.prototype.draw=function()
 {
- draw_box(this.px,this.py,this.px+ancho_pin,this.py+alto_pin);
- //contexto.fillText(this.num,this.px+10,this.py+10);
+ draw_box(this.px,this.py,this.px+pin_width,this.py+pin_high);
 }
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -51,51 +106,51 @@ pin.prototype.draw=function()
 
 function chip(lbl,num_pins,x,y)
 {
-  this.pin=[]; //Array de los pins
+  this.pin=[]; //Pins Array
   
-  this.func_ctrl=null; //Funcion que controla el chip. 
+  //this.func_ctrl=null; //Function to control the chip. 
   
-  this.label=lbl; //Etiqueta
-  this.pos_x=x; //Posicion x (esquina superior izq.) 
-  this.pos_y=y; //Posicion y (esquina superior izq.) 
-  this.num_pins=num_pins; //Numero de pins
+  this.label=lbl; //Label
+  this.pos_x=x; //Position x (top-left corner.) 
+  this.pos_y=y; //Position y (top-left corner.) 
+  this.num_pins=num_pins; //Number of pins
   
-  this.draw_label_type="ht"; //Como y donde coloca la etiqueta:
+  this.draw_label_type="ht"; //How and where to draw the label:
   							 //                 "ht" (horizontal top).
   							 //					"v" (vertical).
 
-  this.engine=null; //funcion que gestiona el funcionamento interno del chip
+  this.engine=null; //Function to control the internal operations of the chip.
   
-  //Calculamos algunas cosas:
+  //Calculating some things:
   var mitad_pins=Math.floor(this.num_pins/2); 
   var x,x1,k;
-  var alto=mitad_pins*(alto_pin+espacio_entre_pins)+espacio_entre_pins*2;
+  var alto=mitad_pins*(pin_high+space_between_pins)+space_between_pins*2;
   
-  this.xf=this.pos_x+ancho_chip; //Posicion x (esquina inferior dcha.). 
-  this.yf=this.pos_y+alto; //Posicion y (esquina inferior dcha.).
+  this.xf=this.pos_x+chip_width; //Position x (bottom-right corner.). 
+  this.yf=this.pos_y+alto; //Position y (bottom-right corner.).
   
-  this.xr=Math.floor(this.pos_x+(ancho_chip/2)); //Posicion x muesca chip
-  this.yr=this.pos_y+Math.floor(alto_pin/2)+2; //Posicion y muesca chip
+  this.xr=Math.floor(this.pos_x+(chip_width/2)); //Position x chip's noch
+  this.yr=this.pos_y+Math.floor(pin_high/2)+2; //Position y chip's noch
   
   //pins:
   for(x=1; x<=mitad_pins; x++)
    {
-    //Pins del lado izquierdo:	 
-    k=this.pos_y+(x*alto_pin)+((x)*espacio_entre_pins);	 
-    this.pin[x]=new pin(this,this.pos_x-ancho_pin,k,x);
+    //Left side pins:	 
+    k=this.pos_y+(x*pin_high)+((x)*space_between_pins);	 
+    this.pin[x]=new pin(this,this.pos_x-pin_width,k,x);
   
-    //Pins del lado derecho:
+    //Right side pins:
     x1=mitad_pins+x;
 
-    k=this.pos_y+(alto_pin+espacio_entre_pins)*(mitad_pins+1-x);
+    k=this.pos_y+(pin_high+space_between_pins)*(mitad_pins+1-x);
     
-    this.pin[x1]=new pin(this,this.pos_x+ancho_chip,k,x1);
+    this.pin[x1]=new pin(this,this.pos_x+chip_width,k,x1);
    }  
 }
 
 chip.prototype.set_pin_type=function(pin,type)
 {
- if(type=="e" || type=="s" || type=="es") this.pin[pin].type=type;
+ if(type=="i" || type=="o" || type=="io") this.pin[pin].type=type;
 }
 
 chip.prototype.set_engine=function(engine)
@@ -108,40 +163,38 @@ chip.prototype.call_engine=function()
  this.engine();
 }
 
-//Establece el voltaje en la linea en asociada al pin.
-// pin: numero de pin
-// volt: voltaje.
+//Put the voltage in the line associated to the pin.
+// pin: pin's number
+// volt: voltage.
 chip.prototype.set_volt=function(pin,volt)
 {
  if(this.pin[pin].line!=null) this.pin[pin].line.set_volt(volt);
 }
 
-//Toma el voltaje en la linea en asociada al pin.
-// pin: numero de pin. Si el pin no tiene linea asociada,
-// devolverá 0;
+//Get the voltage in the line associated to the pin.
+// pin: pin's number. If the pin have not a line associated, will return 0.
 chip.prototype.get_volt=function(pin)
 {
  if(this.pin[pin].line==null) return 0;
  else return this.pin[pin].line.get_volt();
-
 }
 
 chip.prototype.draw=function()
 {
  var x;
  
- //La caja:
+ //the box:
  draw_box(this.pos_x,this.pos_y, this.xf,this.yf); 
  
- //la muesca:
+ //the notch:
  contexto.beginPath();
  contexto.arc(this.xr,this.yr,3,0,2*Math.PI);
  contexto.stroke(); 
  
- //La etiqueta:
+ //The label:
  if(this.draw_label_type=="ht")
   {
-   x=this.pos_x+(ancho_chip/2)-(contexto.measureText(this.label).width/2);  
+   x=this.pos_x+(chip_width/2)-(contexto.measureText(this.label).width/2);  
    contexto.fillText(this.label,x,this.pos_y-2); 
   }
   
@@ -149,13 +202,25 @@ chip.prototype.draw=function()
   {
    for(x=0; x<this.label.length; x++)
     {	 
-     contexto.fillText(this.label[x],this.pos_x+(ancho_chip/2)-(contexto.measureText("X").width/2),this.pos_y+18+(x*8)); 
+     contexto.fillText(this.label[x],this.pos_x+(chip_width/2)-(contexto.measureText("X").width/2),this.pos_y+18+(x*8)); 
     }
   }
  
  //los pins:
  for(x=1; x<=this.num_pins; x++) this.pin[x].draw(); 	
 }
+
+//Return the up-left corner position of the chip.
+chip.prototype.get_pos=function()
+{
+ var p=[];
+
+ p[0]=this.pos_x;
+ p[1]=this.pos_y;
+ 
+ return p;
+}
+
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //*********************************** CHIP **********************************
@@ -167,16 +232,16 @@ chip.prototype.draw=function()
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 function line()
 {
- this.ground=false; //Si tierra es true, no se tiene en cuenta el voltaje.
- this.volt=0; //Voltaje que lleva la linea en este instante. 
- this.pins=[]; //pins a los que esta conectada la linea.
+ this.ground=false; // If ground  is true, will not taken into account the voltage.
+ this.volt=0; //Voltage in the line at this moment. 
+ this.pins=[]; //pins that are connected to the line.
 }
 
 line.prototype.add_pin=function(pin)
 {
  var k=this.pins.length;
- this.pins[k]=pin; //puntero de la linea al pin.
- pin.line=this; //puntero del pin a la linea.
+ this.pins[k]=pin; //Pointer of the line to the pin
+ pin.line=this; //Pointer of the pin to the line.
 }
 
 line.prototype.set_volt=function(volt)
@@ -202,7 +267,7 @@ line.prototype.transmit=function()
   {	 
    for(x=0; x<k; x++)
     {
-     if(this.pins[x].type=="e" || this.pins[x].type=="es") this.pins[x].chip.engine();
+     if(this.pins[x].type=="i" || this.pins[x].type=="io") this.pins[x].chip.engine();
     }
   }
   
@@ -219,8 +284,8 @@ line.prototype.draw=function()
     {
      color='#000000'
      if(this.volt<0 && this.volt!=GROUND) color='#FFFF00';     
-     if(this.volt==GROUND) color='#0000FF'; //Si tierra: azul.
-     if(this.volt>0 && this.volt<=5) //Si 0-5v: Rojo
+     if(this.volt==GROUND) color='#0000FF'; //if ground: blue.
+     if(this.volt>0 && this.volt<=5) //if 0-5v: Red.
       {
        x=Math.floor(this.volt*255/5); 
        color='#'+x.toString(16).toUpperCase()+'0000';
@@ -228,10 +293,10 @@ line.prototype.draw=function()
 
      contexto.beginPath();
      
-     contexto.moveTo(this.pins[0].px+ancho_pin/2,this.pins[0].py+alto_pin/2);
+     contexto.moveTo(this.pins[0].px+pin_width/2,this.pins[0].py+pin_high/2);
      for(x=1; x<np; x++)
       {
-	   contexto.lineTo(this.pins[x].px+ancho_pin/2,this.pins[x].py+alto_pin/2); 	
+	   contexto.lineTo(this.pins[x].px+pin_width/2,this.pins[x].py+pin_high/2); 	
       }
       
      c1=contexto.strokeStyle; 
