@@ -30,44 +30,50 @@ function main()
   var canvas = document.getElementById('myCanvas');
   contexto = canvas.getContext('2d');
  
-  var line=[]; //Array for the diferents lines.
+  var linea=[]; //Array for the diferents lines.
 
   //chips:
-  var power=new e_power(200,50); // It create the Power chip. It is an invented but necessary chip.
-  var timer=new e_timer05(250,100); // It create a timer chip. It is an invented chip.
-  var led=new e_red_led(200,150); 
-  var ls7400=new e_7400(350,200);
-  var led2=new e_red_led(200,200);
+  var power=new e_power(200,50); // It creates the Power chip. It is an invented but necessary chip and put it in the position 200,50  in the canvas.
+  var timer=new e_timer05(250,100); // It creates a timer chip. It is an invented chip and put it in the position 250,100  in the canvas.
+  var led=new e_red_led(200,150);  // It creates a led and put it in the position 200,150  in the canvas.
+  var ls7400=new e_7400(350,200);  // It creates a 7400 chip and put it in the position 350,200  in the canvas.
+  var led2=new e_red_led(200,200);  // It creates a led and put it in the position 200,200  in the canvas.
   
   //To add lines to connect the pins of the chips:
   
   //Vcc:
-  line[0]=new line();
-  line[0].add_pin(power.pin[1]);
-  line[0].add_pin(timer.pin[4]);
-  line[0].add_pin(ls7400.pin[14]);
+  linea[0]=new line();  //It creates a new line that will connect all the power pins.
+ //It connect a specific pin to the line: 
+ linea[0].add_pin(power.pin[1]);  
+  linea[0].add_pin(timer.pin[4]);
+  linea[0].add_pin(ls7400.pin[14]);
   
   //Ground:
-  line[1]=new line();
-  line[1].add_pin(power.pin[2]);
-  line[1].add_pin(led.pin[2]);
-  line[1].add_pin(timer.pin[2]);
-  line[1].add_pin(ls7400.pin[7]);
-  line[1].add_pin(led2.pin[2]);
+  linea[1]=new line();  //It creates a new line that will connect all the ground pins.
+ //It connect a specific pin to the line:  
+  linea[1].add_pin(power.pin[2]);
+  linea[1].add_pin(led.pin[2]);
+  linea[1].add_pin(timer.pin[2]);
+  linea[1].add_pin(ls7400.pin[7]);
+  linea[1].add_pin(led2.pin[2]);
 
-  line[2]=new line();
-  line[2].add_pin(timer.pin[1]);
-  line[2].add_pin(led.pin[1]);
-  line[2].add_pin(ls7400.pin[1]);
-  line[2].add_pin(ls7400.pin[2]);
+ 
+  linea[2]=new line();  //It creates a new line that will connect some logic pins.
+ //It connect a specific pin to the line:  
+  linea[2].add_pin(timer.pin[1]);
+  linea[2].add_pin(led.pin[1]);
+  linea[2].add_pin(ls7400.pin[1]);
+  linea[2].add_pin(ls7400.pin[2]);
   
-  line[3]=new line();
-  line[3].add_pin(led2.pin[1]);
-  line[3].add_pin(ls7400.pin[3]);
+ //It creates a new line that will connect some logic pins.
+ //It connect a specific pin to the line:  
+  linea[3]=new line();
+  linea[3].add_pin(led2.pin[1]);
+  linea[3].add_pin(ls7400.pin[3]);
   
   //Draw lines:  
-  for(var x=0; x<linea.length; x++) line[x].draw();
-	
+  for(var x=0; x<line.length; x++) linea[x].draw();
+
   //Switch on the power:	
   power.call_engine(); 
 }

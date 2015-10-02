@@ -1,4 +1,5 @@
 
+
 function main()
 {
   var canvas = document.getElementById('myCanvas');
@@ -46,4 +47,3 @@ function main()
   //Switch on the power:	
   power.call_engine(); 
 }
-
