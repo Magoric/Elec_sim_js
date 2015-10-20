@@ -6,6 +6,7 @@ chip_width=30;
 var GROUND=-10000;
 var contexto;
 
+ChipUserControl=new TChipUserControl();
 
 function draw_box(x,y,x1,y1)
 {
@@ -19,43 +20,95 @@ contexto.stroke();
 }
 
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//**************************** TChipControl *********************************
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+//Used to control the access to the chips by the mouse.
+function TChipUserControl()
+{
+ this.chip=[];
+ this.n=0;
+}
+
+TChipUserControl.prototype.init=function()
+{
+ this.canvas=contexto.canvas;
+ this.canvas.addEventListener("mousedown", TChipUserControl_events, false);
+}
+
+TChipUserControl_events=function(event)
+{
+ var h,x,y;
+ var p;
+ 
+ var k=ChipUserControl;
+
+ if(k.n>0)
+  {	 
+	 for(h=0; h<k.n; h++)
+	  {
+	   p=k.chip[h].get_squares_pos();
+	   x=event.pageX-contexto.canvas.offsetLeft;
+	   y=event.pageY-contexto.canvas.offsetTop;
+	   
+	   if(p[0]<=x && p[2]>=x)
+		{   
+		 if(p[1]<=y && p[3]>=y) k.chip[h].click();
+		} 		
+	  }	
+  }
+}
+
+//Add a chip to control.
+TChipUserControl.prototype.add_chip=function(chip)
+{
+ this.chip[this.n]=chip;
+ this.n++;
+}
+
+
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//**************************** TChipControl *********************************
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 //******************************** TTimer ***********************************
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 //Used to get a particular timer.
-//Time is expressed in 'tics' and it increment one unit every 'ms' milliseconds.
+//Time is expressed in 'ticks' and it increment one unit every 'ms' milliseconds.
 function TTimer(ms)
 {
- this.tic=-1;
+ this.tick=-1;
  this.ms=ms;
  this.ttimer_id=null;
  
  //Action of the timer. Called automatically. Not for the user.
  this.play_timer=function()
   { 
-   this.tic++;	
+   this.tick++;	
    this.ttimer_id=window.setTimeout(this.play_timer.bind(this), this.ms); 	
   } 
  
  this.play_timer();
 }
 
-//Return the actual tic's number.
-TTimer.prototype.get_tics=function()
+//Return the actual tick's number.
+TTimer.prototype.get_ticks=function()
 {
- return this.tic;
+ return this.tick;
 }
 
-//Set the timer's tic's number to 't'.   
-TTimer.prototype.set_tics=function(t)
+//Set the timer's tick's number to 't'.   
+TTimer.prototype.set_ticks=function(t)
 {
- this.tic=t;	
+ this.tick=t;	
 }
 
-//Set the timer's tic's number to zero.
-TTimer.prototype.reset_tics=function()
+//Set the timer's tick's number to zero.
+TTimer.prototype.reset_ticks=function()
 {
- this.tic=0;	
+ this.tick=0;	
 }
 
 //Stop the timer. It not delete the intrinsic variables associated to the object.
@@ -64,8 +117,8 @@ TTimer.prototype.stop=function()
  window.clearTimeout(this.ttimer_id);
 }
 
-
-TTimer.prototype.continue=function()
+//Continue with the timer 'ticks' count.
+TTimer.prototype.carryon=function()
 {
  this.ttimer_id=window.setTimeout(this.play_timer.bind(this), this.ms);
 }
@@ -95,6 +148,15 @@ pin.prototype.draw=function()
  draw_box(this.px,this.py,this.px+pin_width,this.py+pin_high);
 }
 
+pin.prototype.get_x=function()
+{
+ return this.px;	
+}
+
+pin.prototype.get_y=function()
+{
+ return this.py;	
+}
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //*********************************** PIN ***********************************
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -129,8 +191,8 @@ function chip(lbl,num_pins,x,y)
   this.xf=this.pos_x+chip_width; //Position x (bottom-right corner.). 
   this.yf=this.pos_y+alto; //Position y (bottom-right corner.).
   
-  this.xr=Math.floor(this.pos_x+(chip_width/2)); //Position x chip's noch
-  this.yr=this.pos_y+Math.floor(pin_high/2)+2; //Position y chip's noch
+  this.xr=Math.floor(this.pos_x+(chip_width/2)); //Position x chip's notch
+  this.yr=this.pos_y+Math.floor(pin_high/2)+2; //Position y chip's notch
   
   //pins:
   for(x=1; x<=mitad_pins; x++)
@@ -146,6 +208,15 @@ function chip(lbl,num_pins,x,y)
     
     this.pin[x1]=new pin(this,this.pos_x+chip_width,k,x1);
    }  
+}
+  
+chip.prototype.no_power=function()
+{
+ var x;
+ for(x=1; x<this.pin.length; x++)
+  {
+   if(this.pin[x].type=="o" || this.pin[x].type=="io") this.set_volt(x,0);
+  }
 }
 
 chip.prototype.set_pin_type=function(pin,type)
@@ -181,10 +252,13 @@ chip.prototype.get_volt=function(pin)
 
 chip.prototype.draw=function()
 {
- var x;
+ var x,c;
+ 
+ c=contexto.strokeStyle;
+ contexto.strokeStyle='black';
  
  //the box:
- draw_box(this.pos_x,this.pos_y, this.xf,this.yf); 
+ draw_box(this.pos_x,this.pos_y,this.xf,this.yf); 
  
  //the notch:
  contexto.beginPath();
@@ -207,20 +281,40 @@ chip.prototype.draw=function()
   }
  
  //los pins:
- for(x=1; x<=this.num_pins; x++) this.pin[x].draw(); 	
+ for(x=1; x<=this.num_pins; x++) this.pin[x].draw(); 
+ 
+ contexto.strokeStyle=c;
 }
 
-//Return the up-left corner position of the chip.
-chip.prototype.get_pos=function()
+//Return the x position of the up-left corner position of the chip.
+chip.prototype.get_pos_x=function()
+{
+ return this.pos_x;
+}
+
+//Return the y position of the up-left corner position of the chip.
+chip.prototype.get_pos_y=function()
+{
+ return this.pos_y;
+}
+
+//Return an array with the 4 positions of the corners of the chip
+//The array will have 4 values:
+// [0]: Position x (top-left corner.)
+// [1]: Position y (top-left corner.) 
+// [2]: Position x (bottom-right corner.).
+// [3]: Position y (bottom-right corner.). 
+chip.prototype.get_squares_pos=function()
 {
  var p=[];
-
+ 
  p[0]=this.pos_x;
  p[1]=this.pos_y;
+ p[2]=this.xf;
+ p[3]=this.yf;
  
  return p;
 }
-
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //*********************************** CHIP **********************************
@@ -282,7 +376,7 @@ line.prototype.draw=function()
    
    if(np>1)
     {
-     color='#000000'
+     color='#000000';
      if(this.volt<0 && this.volt!=GROUND) color='#FFFF00';     
      if(this.volt==GROUND) color='#0000FF'; //if ground: blue.
      if(this.volt>0 && this.volt<=5) //if 0-5v: Red.

@@ -13,6 +13,8 @@ The initial concepts:
 
 - The system represent all the electronics elements as chips. It doesn't matter if you want to represent a resistance, 
   a transistor or a diode. All of them will be represented as chips.
+  
+ - All chips are represented vertically.
 
 - The chips always have an even number of pins. If the element you want to represent have an odd number of pins, 
   a transistor for example, just use the pins you need and leave the unused pin without connect.
@@ -21,7 +23,7 @@ The initial concepts:
 
 Let start with the circuit definition:
 
-The principal function is 'main()'. You can call others functions from this one, but it will not be necessary in a simple circuit.
+The principal function is 'main()' in the file 'elec.js'. You can call others functions from this one, but it will not be necessary in a simple circuit.
 Here are an example with comments:
 
 function main()
@@ -79,9 +81,339 @@ function main()
 }
 
 
+################################################################################################
+										THE CHIP LIBRARY.
+################################################################################################
+										
+Every class in the library will have a constructor to define the basics of the chip and at least 
+a method that is called when the state of the chip or the pins have changed.
+
+The constructor name by convention will start with 'e_'.  For example: 
+function e_7400(x,y). 
+
+A constructor will have at least two parameters that define the position of the chip in the canvas. 
+By convention (x,y).
+
+Let's see what is the way to define a chip in the constructor:
+
+	The first thing we have to know is that this class will be a derivative of chip class, so we can 
+	access to the methods of chip class. We do it with the follow line:			
+								
+		e_NEW_CHIP.prototype = new chip;
+		
+	The constuctor basic function will be like this: 
+	
+function e_NEW_CHIP(x,y)
+{
+ //This will create a chip with 8 pins. (See chip in ENGINE section for details)
+ this.chip=chip;
+ this.chip("NEW_CHIP",8,x,y); 
+ 
+ //This will draw the chip in the canvas. (See 'draw' in ENGINE -> chip section for details)
+ this.draw();
+  
+ //This will set the reaction function with every changes in the chip. (See 
+ //'set_engine' in ENGINE -> chip section for details) The reaction method, by 
+ //convention, will be named as 'worker': 
+ //						e_NEW_CHIP.prototype.worker=function()
+ this.set_engine(this.worker);	
+ 
+ 							
+ //All the pins of the chip are created by default as 'i' (input), but is VERY VERY IMPORTANT to redefine 
+ //properly the pins that are output with "o" or  input/output with "io".
+ //(See 'set_pin_type' in ENGINE -> chip section for details)
+ this.set_pin_type(4,"o"); 
+ this.set_pin_type(7,"o"); 
+
+//Call the worker function.
+ this.call_engine(); 
+}	 
+
+e_NEW_CHIP.prototype.worker=function()
+{
+
+}
+
+Maybe you need control that chip using the mouse clicking over it. For example to make a switch or similar.
+To use this function, you need to add to the constructor this line:
+ 
+ ChipUserControl.add_chip(this);
+
+And  add a method to control the click action:
+
+e_NEW_CHIP.prototype.click=function()
+{
+....
+ 
+ this.call_engine();
+}
+
+If you want to see examples of how to build a chip, all you have to do is to edit 'lib.js' file in the 
+folder 'lib', and you will find many examples used by the system.
+
+************************************************************************************************
+										CHIPS NOW IN USE
+************************************************************************************************
+
+//Power Supply:
+	Pins:
+	 1) Output +5V
+	 2) Output Ground.
+	 
+	function e_power(x,y)
+		x,y: Chip's position in the canvas.
+		
+
+ Led (red):
+	Pins:
+	 1) To positive voltage 
+	 2) To Ground.
+	 
+	function e_red_led(x,y)
+ 		x,y: Chip's position in the canvas.
+ 
+ Logic Timer. 0.5 seconds, change the signal (Invented chip for test):
+	Pins:
+	 1) logic signal
+	 2) Ground.
+	 3) No conected.
+	 4) Input 5V.
+	 
+	function e_timer05(x,y) 
+		x,y: Chip's position in the canvas.
+			
+7400: Quad nand 
+	Pins:
+	 1) nand-1 input-1
+	 2) nand-1 input-2
+	 3) nand-1 output
+	 4) nand-2 input-1
+	 5) nand-2 input-2
+	 6) nand-2 output
+	 7) GND
+	 8) nand-3 output
+	 9) nand-3 input-1
+	 10) nand-3 input-2
+	 11) nand-4 output
+	 12) nand-4 input-1
+	 13) nand-4 input-2
+	 14) Vcc.
+	 
+	function e_7400(x,y)	
 
 
-- 
+ Switch to open or close a line in the circuit.
+ 	Pins:
+ 	 1) the line (in)
+ 	 2) The line (out)
+	
+	function e_switch(x,y,state)
+		x,y: Chip's position in the canvas.
+		state: This parameter is optional. If you put it in the call, 'true' represent 'ON' (the
+			   voltage pass) and 'false' represent 'OFF' (the voltage don't pass).
+			   
+			   
+################################################################################################
+											THE ENGINE.
+################################################################################################
+
+The engine is a file that controls and describes the functionality of the system. It means that 
+there are some functions, variables and classes that provide that functionality helping to the 
+library to make new electronic elements and final user to compose the circuit.
+
+The engine is divided in sections:
+
+************************************************************************************************
+ - CHIP: This class is where it handle the chip's behavior. 
+************************************************************************************************  
+
+  	chip(lbl,num_pins,x,y) Define a new chip.
+		
+   		lbl: The chip's label or name.
+   		num_pins: Number of the pins of the chip. Remeber: Always even number.
+   		x,y: Position in the canvas (left-up corner of the chip).
+   		  
+		chip() only is used/called in the library to make an electronic component,  not for the final user.
+	
+	
+	chip.prototype.no_power=function()
+		no_power() 	Should be called when no correct signal is detected in the power and/or ground signal  
+					of a chip. It deactivate the rest of the chip's signals and transmit it to the 
+					lines connected to the pins of the chip.
+					
+	chip.prototype.set_pin_type=function(pin,type)
+		 set_pin_type(pin,type)	
+			
+			pin: Number of the pin. Pins start with number 1.
+			type: 'i', 'o', 'io'. The pins have three possible operating states:
+		 							'i': input
+									'o': output
+									'io': input and/or output
+			By default, every pin in the chip is defined as 'i' when they are created.			
+			When you call this method, you will put the 'pin' (number of the pin) to one of this three states.
+	 
+		 							
+	chip.prototype.set_engine=function(engine)
+		set_engine(engine) 	Is used to assign a function or method to calculate the state of the chip when a pin is 
+								modified.  It should be called when you define the class of a new chip to control his 
+								operation.
+			engine: The function or method of the class that define how work every particular chip.
+	
+	chip.prototype.call_engine=function()
+		call_engine=function() Used to call the method or function defined in 'set_engine'.
+		
+
+	chip.prototype.set_volt=function(pin,volt) 
+  		set_volt(pin,volt) Put the voltage in the line associated to the pin.
+			pin: pin's number.
+			volt: voltage.
+			
+	chip.prototype.get_volt=function(pin)
+		get_volt(pin) Return the voltage in the line associated to the pin.
+			pin: Pin's number. If the pin have not a line associated, will return 0.
+			
+	chip.prototype.draw=function()
+		draw() 	Draw the chip. Draw the box, label, notch and pins. If the chip have 
+				special things to draw like a LED, for example, it would be drawn in 
+				the definition of the specific chip (in the lib.js file).
+				
+	chip.prototype.get_pos_x=function()
+		get_pos_x() Return the x position of the up-left corner position of the chip box.
+		
+	chip.prototype.get_pos_y=function()		
+		get_pos_y() Return the y position of the up-left corner position of the chip box.
+			
+	chip.prototype.get_squares_pos=function()		
+		get_squares_pos() 	Return an array with the 4 positions of the corners of the chip
+							The array will have 4 values:
+								[0]: Position x (top-left corner.)
+								[1]: Position y (top-left corner.) 
+								[2]: Position x (bottom-right corner.)
+								[3]: Position y (bottom-right corner.) 			
 
 
 
+************************************************************************************************			
+ - PIN: 	This class handle every pin in a chip. The pins are created automatically by the 
+		chip's class when it is defined.
+************************************************************************************************
+	pin(chip,x,y,num) Define a new pin. 
+						chip: The chip class that have the pin.	
+						x,y: The position of the left-up corner in the canvas.	
+						number: The number of the pin in the chip.
+
+	pin.prototype.draw=function() 
+		draw() Pin draw function.
+		
+	pin.prototype.get_x=function()
+		get_x() Return the X position of the left-up corner of the pin in the canvas.
+
+	pin.prototype.get_y=function()
+		get_y() Return the Y position of the left-up corner of the pin in the canvas.
+		
+		
+************************************************************************************************		
+ - LINE: Lines connect the pins of the chips. It is the equivalent of the tracks of a circuits 
+		of an electronic board.
+************************************************************************************************
+	line() Define a new line.
+
+	line.prototype.add_pin=function(pin)
+		add_pin(pin) Add a pin to connect to this line.
+			pin: Pin previously defined.
+
+	line.prototype.set_volt=function(volt)
+		set_volt(volt) 	Set the voltage that will have the line. This voltage is transmitted to 
+						the pins connected, and therefore to his chips.
+			volt: The new Voltage. It should be a number.
+
+	line.prototype.get_volt=function()
+		get_volt() Return the voltage of the line.
+
+	line.prototype.transmit=function()
+		transmit() Transmit the voltage to the pins connected by this line.
+
+	line.prototype.draw=function()
+		draw() Draw the line.
+		
+		
+
+************************************************************************************************
+- TCHIPCONTROL: Used to control the access to the chips by the mouse. 
+				It is declared in the engine.js with the follow action:
+					ChipUserControl=new TChipUserControl();
+				So you have NOT to declare it, but the main() function should have a call to 
+				ChipUserControl.init() method to start it before you declare the chips, but 
+				after you declare the 'contexto'.
+				
+				When you define a new chip in the library, It should have:
+					- A call in the constructor for adding this new chip to be controled by the  
+					  user, using: ChipUserControl.add_chip(this);
+				    
+					- A method (function) called '.click()' that extend the particular class 
+					  chip. Example: e_switch.prototype.click=function()
+					  This method will be called when the chip is clicked by the user.
+************************************************************************************************
+
+	function TChipUserControl() Used to control the access to the chips by the mouse.
+
+	TChipUserControl.prototype.init=function()
+		init=function() Init the control system.
+		
+	TChipUserControl_events=function(event) It Looks for the chip clicked. It is NOT callable for 
+											the user.
+
+	TChipUserControl.prototype.add_chip=function(chip)
+		add_chip(chip) Add a chip to control.
+			chip: The chip to control.
+
+		
+************************************************************************************************		
+ - TIMER: 	It is used to have a time control outside of the system timer. Experimental and  
+ 			under test. Not used  by the moment.
+************************************************************************************************
+
+	function TTimer(ms) Used to get a particular timer. Time is expressed in 'ticks' and it 
+						increment one unit every 'ms' milliseconds.
+
+	TTimer.prototype.get_ticks=function()
+		get_ticks() Return the actual tick's number.
+
+	TTimer.prototype.set_ticks=function(t)
+		set_ticks(t) Set the timer's tick's number to 't'.   
+
+	TTimer.prototype.reset_ticks=function()
+		reset_ticks=function() Set the timer's tick's number to zero.
+
+	TTimer.prototype.stop=function()
+		stop=function() Stop the timer. It not delete the intrinsic variables associated 
+						to the object.
+
+	TTimer.prototype.carryon=function()
+		carryon=function() The timer continue with the 'tick' count.
+	
+	
+************************************************************************************************	
+- OTHER THINGS: Functions and global variables. 			
+************************************************************************************************
+The default values for pins and chips. In pixels:
+
+pin_width=4; 
+pin_high=4;
+space_between_pins=4;
+chip_width=30;
+
+
+Value for the ground:
+var GROUND=-10000; 
+
+Context of the canvas:
+var contexto; 
+
+ChipUserControl=new TChipUserControl(); //Used to control the users clicks over chips.
+
+function draw_box(x,y,x1,y1) Draw a box in the canvas. 
+			(x,y): left-up corner.
+			(x1,y1): bottom-down corner.
+
+			
